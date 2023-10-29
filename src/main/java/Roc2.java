@@ -1,4 +1,3 @@
-import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -13,13 +12,21 @@ import java.util.concurrent.ThreadLocalRandom;
  * ПСС - приятый служебный сигнал
  * ИП  - исход передачи. Может быть три значения - Ст и П(стирание и повтор) , Выб(выпадение), ВбО(выдача без ошибок)
  */
-public class Roc1 {
+public class Roc2 {
 
     private ProbabilityCalculator probabilityCalculator;
     private StringBuilder table;
 
+    private int countVip;
+    private int countOsh;
+    private int countVbo;
+
     public void startRandom(ProbabilityCalculator probabilityCalculator) {
         table = new StringBuilder();
+        countOsh = 0;
+        countVbo = 0;
+        countVip = 0;
+
         this.probabilityCalculator = probabilityCalculator;
         Scanner in = new Scanner(System.in);
 
@@ -55,6 +62,7 @@ public class Roc1 {
         }
 
         System.out.println(table);
+        printResult(countMessage);
     }
     public void start(ProbabilityCalculator probabilityCalculator) {
         table = new StringBuilder();
@@ -91,10 +99,11 @@ public class Roc1 {
         }
 
         System.out.println(table);
+        printResult(countMessage);
     }
 
     private String[] calculate (String message, String messageVpk, String signal, String controlSeq) {
-        double rand = ThreadLocalRandom.current().nextDouble(0.01, 0.03);
+        double rand = ThreadLocalRandom.current().nextDouble(0.01, 0.4);
         String[] result = new String[6];
 
         StringBuilder distortionVpk = new StringBuilder();
@@ -105,6 +114,8 @@ public class Roc1 {
 
         // если рандомное значение оказалось меньше вероятности получить ошибку, то кодовая комбинация инвертируется
         if(rand <= probabilityCalculator.getProbGetIncorrectMessage()) {
+            countOsh += 1;
+
             for(Character bit:messageVpk.toCharArray()){
                 distortionVpk.append(bit.equals('1') ? "0" : "1");
             }
@@ -114,10 +125,9 @@ public class Roc1 {
 
             kpbPr = distortionVpk.substring(message.length(), distortionVpk.length());
 
-
+            // перебираем рандомные значения пока не получим Вбо
             while (rand <= probabilityCalculator.getProbGetIncorrectMessage()) {
-                System.out.println(rand + "<=" + probabilityCalculator.getProbGetIncorrectMessage());
-                rand = ThreadLocalRandom.current().nextDouble(0.01, 0.03);
+                rand = ThreadLocalRandom.current().nextDouble(0.01, 0.4);
                 pFromN = message;
                 resultMessage = "-";
 
@@ -129,8 +139,10 @@ public class Roc1 {
             kpbPr = distortionVpk.substring(message.length(), distortionVpk.length());
 
             result[3] = "Вбо";
-            // если рандомное значение оказалось меньше вероятности выпадения, то все биты кодовых комбинаций заменяются на 1
-        } else if (rand <= probabilityCalculator.getProbabilityDrop()) {
+            // если рандомное значение оказалось меньше вероятности выпадения + вероятность выдачи с ошибкой, то все биты кодовых комбинаций заменяются на 1
+        } else if (rand <= probabilityCalculator.getProbabilityDrop() + probabilityCalculator.getProbGetIncorrectMessage()) {
+            countVip += 1;
+
             for(int i = 0; i<messageVpk.length(); i++) {
                 distortionVpk.append("1");
             }
@@ -142,6 +154,8 @@ public class Roc1 {
 
             result[3] =  "Вып";
         } else {
+            countVbo += 1;
+
             distortionVpk = new StringBuilder(messageVpk);
             distortionSignal = new StringBuilder(signal);
 
@@ -159,9 +173,16 @@ public class Roc1 {
     }
 
     private String print(String i, String message, String pFromN, String controlSequence, String messageVpk,
-                       String kpbPr, String controlSig, String pss, String ip) {
+                         String kpbPr, String controlSig, String pss, String ip) {
         return String.format("%10s%20s%20s%20s%20s%20s%20s%20s%20s",
                 i, message, pFromN, controlSequence, messageVpk, kpbPr, controlSig, pss, ip);
     }
 
+    private void printResult(int countMsg) {
+        System.out.println("Частота правильного приема (вычисленная): " + probabilityCalculator.getProbabilityCorrectReception());
+        System.out.println("Частота приема с ошибками (вычисленная): " + probabilityCalculator.getProbabilityIncorrectReception());
+        System.out.println("Частота выдачи с ошибками ROC2 : " + ((double)countOsh/(double) countMsg) +", вычисленная: " + probabilityCalculator.getProbGetIncorrectMessage());
+        System.out.println("Частота выпадения ROC2 " + ((double)countVip/(double) countMsg) + ", вычисленная: " + probabilityCalculator.getProbabilityDrop());
+        System.out.println("Частота выдачи без ошибок ROC2: " + ((double)countVbo/(double) countMsg) + ", вычисленная: " + (1 - probabilityCalculator.getProbGetIncorrectMessage() - probabilityCalculator.getProbabilityDrop()));
+    }
 }

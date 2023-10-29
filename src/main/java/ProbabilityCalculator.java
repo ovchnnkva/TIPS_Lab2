@@ -63,7 +63,14 @@ public class ProbabilityCalculator {
      * Вероятность выпадения P_вып
      */
     private double probabilityDrop;
-
+    /**
+     * Вероятность правильного приема сигнала Р_нп_2
+     */
+    private double probabilityCorrectReception;
+    /**
+     * ВЕроятность ошибочного приема сигнала Р_пп_2
+     */
+    private double probabilityIncorrectReception;
     public void start() {
         Scanner in = new Scanner(System.in);
         System.out.println("Число разрядов в информационной комбинации: ");
@@ -98,33 +105,32 @@ public class ProbabilityCalculator {
 
         int l;
         int l2 = 0;
-        double newProbabilityNotFoundIncorrectResult = 0.0; // P_np
-        double newProbabilityCorrectResult = 0.0; // P_pp
+
          do {
              minLenght += 2;
              l2 += 1;
              l = ((minLenght + 1) / 2);
              c = factorial(minLenght) / (factorial(l) * factorial(minLenght - l));
 
-             newProbabilityNotFoundIncorrectResult = c * Math.pow(reverseChannel, l) * Math.pow(1 - Math.pow(reverseChannel, l), minLenght - l);
-             newProbabilityCorrectResult = c * Math.pow(reverseChannel, l2) * Math.pow(1 - Math.pow(reverseChannel, l2), minLenght - l2);
-         } while (newProbabilityNotFoundIncorrectResult > probabilityAcceptableSignalReception);
+             probabilityCorrectReception = c * Math.pow(reverseChannel, l) * Math.pow(1 - Math.pow(reverseChannel, l), minLenght - l);
+             probabilityIncorrectReception = c * Math.pow(reverseChannel, l2) * Math.pow(1 - Math.pow(reverseChannel, l2), minLenght - l2);
+         } while (probabilityCorrectReception > probabilityAcceptableSignalReception);
 
-        probGetIncorrectMessage =  (probabilityNotFoundIncorrectResult *  newProbabilityCorrectResult) / (1 - probabilityFoundIncorrectResult * newProbabilityCorrectResult);
-        probabilityDrop = (probabilityFoundIncorrectResult * newProbabilityNotFoundIncorrectResult) / (1 - probabilityFoundIncorrectResult * newProbabilityCorrectResult);
+        probGetIncorrectMessage =  (probabilityNotFoundIncorrectResult *  probabilityIncorrectReception) / (1 - probabilityFoundIncorrectResult * probabilityIncorrectReception);
+        probabilityDrop = (probabilityFoundIncorrectResult * probabilityCorrectReception) / (1 - probabilityFoundIncorrectResult * probabilityIncorrectReception);
 
-        print(newProbabilityNotFoundIncorrectResult, newProbabilityCorrectResult);
+        print();
     }
 
-    private void print(double newProbabilityNotFoundIncorrectResult, double newProbabilityCorrectResult) {
+    private void print() {
         System.out.println("Вероятность правильного решения в ПК P_pp: " + probabilityCorrectResult);
         System.out.println("Вероятность обнаружения ошибки в ПК P_oo: " + probabilityFoundIncorrectResult);
         System.out.println("Вероятность необнаружения ошибки  P_нп: " + probabilityNotFoundIncorrectResult);
         System.out.println("Вероятность отсутствия ошибки в ОК P_l: " + probabilityNotIncorrectResult);
         System.out.println("Допустимое значение вероятности приема сигнала ОС Р_ндпоп: " + probabilityAcceptableSignalReception);
         System.out.println("Минимальное значение длины сигнала: " + minLenght);
-        System.out.println("Вероятность правильного приема правильного сигнала подтверждения из ОК: " + newProbabilityNotFoundIncorrectResult);
-        System.out.println("Вероятность ошибочного приема правильного сигнала подтверждения из ОК: " + newProbabilityCorrectResult);
+        System.out.println("Вероятность правильного приема правильного сигнала подтверждения из ОК: " + probabilityCorrectReception);
+        System.out.println("Вероятность ошибочного приема правильного сигнала подтверждения из ОК: " + probabilityIncorrectReception);
         System.out.println("Вероятность выдачи сообщения с ошибкой: " + probGetIncorrectMessage);
         System.out.println("Вероятность выпадения: " + probabilityDrop);
     }
